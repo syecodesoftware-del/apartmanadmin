@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Komşu Asistanı — Platform Admin Paneli
 
-## Getting Started
+Mobil uygulamadan **ayrı**, kendi sunucunda barınan web yönetim paneli. Tüm siteleri/kullanıcıları görüp yönetir.
 
-First, run the development server:
+- **Next.js 16** (App Router) + TypeScript + Tailwind
+- Supabase **service_role** ile çalışır → RLS bypass → tüm siteler. Anahtar **yalnız sunucuda** kalır.
+- Erişim: yalnız `users.role = 'admin'` hesaplar.
 
+## Mimari güvenlik
+- `service_role` anahtarı sadece sunucu kodunda (`src/lib/supabaseAdmin.ts`, `import 'server-only'`). Tarayıcıya/bundle'a **sızmaz** (`NEXT_PUBLIC_` değil).
+- Mevcut mobil uygulamanın RLS politikalarına **dokunulmaz** → canlıya sıfır risk.
+- Her mutasyon `admin_audit_log` tablosuna yazılır (Denetim Kaydı ekranı).
+- Giriş hız sınırı (5 deneme / 5 dk), güvenlik başlıkları (`next.config.ts`).
+
+## Kurulum (ilk kez)
+
+### 1. Ortam değişkenleri
+`.env.local.example` → `.env.local` olarak kopyala ve **service_role** anahtarını doldur:
+```
+SUPABASE_URL=...                 (dolu)
+SUPABASE_ANON_KEY=...            (dolu)
+SUPABASE_SERVICE_ROLE_KEY=...    ← Supabase Dashboard → Settings → API → service_role (secret)
+```
+`.env.local` gitignore'dadır; anahtarı asla repoya koyma.
+
+### 2. Bağımlılıklar
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Admin hesabı oluştur (tek seferlik)
+```bash
+node scripts/create-admin.mjs eposta@ornek.com güçlü-şifre "Ad Soyad"
+```
+Site'siz, `role=admin` bir hesap oluşturur (mevcut kullanıcılara dokunmaz, idempotent).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Çalıştırma
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Local (geliştirme)
+```bash
+npm run dev
+# http://localhost:3000 → giriş
+```
 
-## Learn More
+### Production (kendi sunucun)
+```bash
+npm run build
+npm run start        # varsayılan port 3000; PORT=8080 npm run start ile değiştir
+```
+Reverse proxy (Nginx) arkasında HTTPS ile yayınlaman önerilir. Tek `node` süreci yeterli; istersen `pm2` / `systemd` ile servis yap.
 
-To learn more about Next.js, take a look at the following resources:
+## Bölümler
+- **Genel Bakış** — site/kullanıcı/daire sayıları, tahmini MRR, deneme bitişleri, ödeme gecikenler, son kayıtlar.
+- **Siteler** — liste + detay: üyeler, mali özet, abonelik yönetimi (durum/trial/birim fiyat), abonelik ödemeleri.
+- **Kullanıcılar** — çapraz-site arama/filtre + detay: rol/onay/aktiflik, şifre sıfırlama bağlantısı, hesap silme.
+- **Faturalama** — platform ayarları (deneme gün, birim fiyat) + site bazlı aylık ücretler.
+- **İçerik** — duyuru/şikayet/rezervasyon/anket denetimi (kötüye kullanım kaldırma).
+- **Denetim Kaydı** — panelden yapılan tüm değişikliklerin kaydı.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Notlar
+- Hız sınırı in-memory'dir (restart'ta sıfırlanır) — tek sunuculu kurulum için yeterli; çok örnekli dağıtımda Redis tabanlıya geçilebilir.
+- service_role tanrı-modudur: paneli yalnız güvendiğin kişilere aç, HTTPS arkasında çalıştır.
