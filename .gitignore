@@ -14,11 +14,14 @@
 /coverage
 
 # next.js
-/.next
-/.next/
-.next.nosync/
-node_modules.nosync/
+.next*
+node_modules*
 /out/
+
+# iCloud çakışma kopyaları (".next 2", "dosya 2.ts" vb.)
+* 2
+* 2.*
+* [0-9]
 
 # production
 /build
