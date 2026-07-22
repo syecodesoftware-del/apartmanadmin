@@ -8,5 +8,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/users', label: 'Kullanıcılar', icon: '👥' },
   { href: '/billing', label: 'Faturalama', icon: '💳' },
   { href: '/content', label: 'İçerik', icon: '📣' },
+  { href: '/app-release', label: 'Mobil Sürüm', icon: '📱' },
   { href: '/audit', label: 'Denetim Kaydı', icon: '🛡️' },
 ];
